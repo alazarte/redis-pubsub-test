@@ -53,18 +53,20 @@ Available commands
         if not self.redis.set_user(line):
             self.logger.info("Username already exists...")
             return
-        elif not len(line) < MIN_CHAR_NAMES:
+        elif len(line) < MIN_CHAR_NAMES:
             self.logger.info("Name length should be more than {}".format(MIN_CHAR_NAMES))
+            return
+
+        self.logger.info(len(line))
 
         self.username = line
 
         line = input("channel > ").lower()
+        if len(line) < MIN_CHAR_NAMES:
+            self.logger.info("Name length should be more than {}".format(MIN_CHAR_NAMES))
+            return
 
         if self.redis.set_channel(self.username, line):
-            self.logger.info("New channel")
-        elif not len(line) < MIN_CHAR_NAMES:
-            self.logger.info("Name length should be more than {}".format(MIN_CHAR_NAMES))
-        else:
             self.logger.info("Joining channel")
 
         while True:
