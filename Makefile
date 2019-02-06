@@ -1,10 +1,10 @@
-all: build chat
+all: build run
 
 build:
-	docker build -t python-redis .
+	docker build -t chat .
 
 redis:
 	docker run --rm -ti --name redis-service -p 6793 -d redis
 
-chat:
-	docker run --rm -ti --link redis-service python-redis
+run:
+	docker run --rm -ti --link redis-service chat
