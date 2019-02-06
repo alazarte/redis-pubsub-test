@@ -2,8 +2,8 @@ FROM python:3
 
 RUN pip install redis
 
-COPY ./app.py /opt/app.py
+COPY ./chat /opt/chat
 
-WORKDIR "/opt"
+WORKDIR "/opt/chat"
 
-ENTRYPOINT ["python", "app.py"]
+ENTRYPOINT ["python", "chat.py"]
