@@ -34,6 +34,16 @@ Available commands
     [string]    Publish string to redis
         """
 
+    def __take_name(prompt):
+        line = input(prompt).lower()
+
+        while len(line) < MIN_CHAR_NAMES:
+            self.logger.info("Username length should be more than {}".format(MIN_CHAR_NAMES))
+            line = input(prompt).lower()
+
+        return line
+
+
     def chat(self):
 
         message_exit = '^exit$'
@@ -48,25 +58,15 @@ Available commands
 
         self.logger.info(self.help_message)
 
-        line = input("username > ").lower()
+        self.username = self.__take_name("username > ")
 
-        if not self.redis.set_user(line):
+        if not self.redis.set_user(self.username):
             self.logger.info("Username already exists...")
             return
-        elif len(line) < MIN_CHAR_NAMES:
-            self.logger.info("Name length should be more than {}".format(MIN_CHAR_NAMES))
-            return
 
-        self.logger.info(len(line))
+        self.channel_name = self.__take_name("channel > ")
 
-        self.username = line
-
-        line = input("channel > ").lower()
-        if len(line) < MIN_CHAR_NAMES:
-            self.logger.info("Name length should be more than {}".format(MIN_CHAR_NAMES))
-            return
-
-        if self.redis.set_channel(self.username, line):
+        if self.redis.set_channel(self.username, self.channel_name):
             self.logger.info("Joining channel")
 
         while True:
