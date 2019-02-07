@@ -6,6 +6,9 @@ from config import Config
 DEFAULT_CONFIG_FILEPATH='./config/config.json'
 DEFAULT_CHANNEL_NAME='test'
 
+HASH_MAP_NAME='user-channel'
+LIST_NAME='channel-list'
+
 # Class to communicate to Redis Service
 
 class Redis():
@@ -45,7 +48,7 @@ class Redis():
 
         if not self.__check_key_exists(string):
 
-            self.queue.hset('user-channel', string, DEFAULT_CHANNEL_NAME)
+            self.queue.hset(HASH_MAP_NAME, string, DEFAULT_CHANNEL_NAME)
 
             return True
 
@@ -53,16 +56,18 @@ class Redis():
 
     def set_channel(self, username, channel_name):
 
-        self.queue.hdel('user-channel', username)
-        self.queue.hset('user-channel', username, channel_name)
+        self.queue.hdel(HASH_MAP_NAME, username)
+        self.queue.hset(HASH_MAP_NAME, username, channel_name)
 
-        self.queue.lpush('channel-list', channel_name)
+        self.queue.lrem(LIST_NAME, 0, channel_name)
+
+        self.queue.lpush(LIST_NAME, channel_name)
 
         self.channel.subscribe(channel_name)
 
     def __check_key_exists(self, string):
 
-        all_keys = self.queue.hkeys('user-channel')
+        all_keys = self.queue.hkeys(HASH_MAP_NAME)
 
         for key in all_keys:
 
@@ -76,8 +81,12 @@ class Redis():
 
     def list_users(self):
 
-        return self.queue.hkeys('user-channel')
+        return self.queue.hkeys(HASH_MAP_NAME)
 
     def list_channels(self):
 
-        return self.queue.lrange('channel-list', 0, -1)
+        return self.queue.lrange(LIST_NAME, 0, -1)
+
+    def remove_user(self, username):
+
+        self.queue.hdel(HASH_MAP_NAME, username)

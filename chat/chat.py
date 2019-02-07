@@ -6,7 +6,7 @@ import time
 
 from  redis_connection import Redis
 
-MIN_CHAR_NAMES=8
+MIN_CHAR_NAMES=4
 
 class Chat():
 
@@ -34,7 +34,7 @@ Available commands
     [string]    Publish string to redis
         """
 
-    def __take_name(prompt):
+    def __take_name(self, prompt):
         line = input(prompt).lower()
 
         while len(line) < MIN_CHAR_NAMES:
@@ -42,6 +42,12 @@ Available commands
             line = input(prompt).lower()
 
         return line
+
+    def __quit_chat(self):
+
+        self.redis.remove_user(self.username)
+        self.logger.info("Bye...")
+
 
 
     def chat(self):
@@ -58,11 +64,19 @@ Available commands
 
         self.logger.info(self.help_message)
 
+        self.logger.info("Listing all users:")
+
+        self.logger.info(self.redis.list_users())
+
         self.username = self.__take_name("username > ")
 
         if not self.redis.set_user(self.username):
             self.logger.info("Username already exists...")
             return
+
+        self.logger.info("Listing all channels:")
+
+        self.logger.info(self.redis.list_channels())
 
         self.channel_name = self.__take_name("channel > ")
 
@@ -77,14 +91,15 @@ Available commands
 
             except KeyboardInterrupt:
 
-                self.logger.info("Bye...")
+                self.__quit_chat()
                 break
 
             if '' == line:
                 continue
 
             if match_exit.match(line):
-                self.logger.info("Bye...")
+
+                self.__quit_chat()
                 break
 
             elif match_listen.match(line):
