@@ -34,12 +34,22 @@ Available commands
     [string]    Publish string to redis
         """
 
-    def __take_name(self, prompt):
+    def __check_name(self, prompt, allow_duplicate=True, tries=0):
+
         line = input(prompt).lower()
 
-        while len(line) < MIN_CHAR_NAMES:
-            self.logger.info("Username length should be more than {}".format(MIN_CHAR_NAMES))
-            line = input(prompt).lower()
+        if len(line) < MIN_CHAR_NAMES :
+            self.logger.info("Invalid length, shoud be more than {}".format(MIN_CHAR_NAMES))
+            tries += 1
+            line = self.__check_name(prompt, allow_duplicate, tries)
+
+        tries = 0
+
+        if not allow_duplicate and self.redis.check_duplicate(line):
+
+            self.logger.info("Found duplicate for {}".format(line))
+            tries += 1
+            line = self.__check_name(prompt, allow_duplicate, tries)
 
         return line
 
@@ -47,8 +57,6 @@ Available commands
 
         self.redis.remove_user(self.username)
         self.logger.info("Bye...")
-
-
 
     def chat(self):
 
@@ -66,22 +74,22 @@ Available commands
 
         self.logger.info("Listing all users:")
 
-        self.logger.info(self.redis.list_users())
+        self.logger.info(self.redis.get_users())
 
-        self.username = self.__take_name("username > ")
-
-        if not self.redis.set_user(self.username):
-            self.logger.info("Username already exists...")
-            return
+        self.username = self.__check_name("username > ", False)
 
         self.logger.info("Listing all channels:")
 
-        self.logger.info(self.redis.list_channels())
+        self.logger.info(self.redis.get_channels())
 
-        self.channel_name = self.__take_name("channel > ")
+        channel_name = self.__check_name("channel > ")
 
-        if self.redis.set_channel(self.username, self.channel_name):
+        if self.redis.set_channel(self.username, channel_name):
             self.logger.info("Joining channel")
+
+        self.logger.info("Listing users in channel:")
+
+        self.logger.info(self.redis.get_users_current_channel())
 
         while True:
 
@@ -106,30 +114,35 @@ Available commands
                 self.logger.info("Hit CTRL+C to stop listening...")
                 try:
                     while True:
-                        message = self.redis.channel.get_message()
+                        message = self.redis.get_message()
                         if message:
-                            self.logger.info("%s: %s" % (self.redis.redis_channel_name, message))
+                            self.logger.debug("%s" % (message))
+                            if isinstance(message['data'],str) and ':' in message['data']:
+                                user_from = message['data'].split(':')[0]
+                                data = message['data'].split(':')[1:]
+                            else:
+                                user_from = "system"
+                                data = message['data']
+                            self.logger.info("#{}-{}: {}"
+                                .format(message['channel'], user_from, data))
                         time.sleep(1)
                 except KeyboardInterrupt:
                     self.logger.info("Stop listening")
 
             elif match_channel.match(line):
                 m = match_channel.match(line)
-                channel_name = m.group(1)
-                self.logger.info("Change channel name to {}".format(channel_name))
-                self.redis.set_channel(channel_name)
+                new_channel_name = m.group(1)
+                self.logger.info("Change channel name to {}".format(new_channel_name))
+                self.redis.set_channel(self.username, new_channel_name)
                 # Check if channel exists, if not create a new one
 
             elif match_list.match(line):
-                match_list.match(line)
-                all_list = self.redis.list_users()
-                self.logger.info(all_list)
-                all_list = self.redis.list_channels()
+                all_list = self.redis.get_channels()
                 self.logger.info(all_list)
 
             else:
                 self.logger.debug("Sending...")
-                self.redis.queue.publish(self.redis.redis_channel_name, line)
+                self.redis.publish("{}:{}".format(self.username, line))
 
 chat = Chat()
 chat.chat()

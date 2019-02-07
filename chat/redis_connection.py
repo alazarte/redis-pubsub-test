@@ -6,87 +6,113 @@ from config import Config
 DEFAULT_CONFIG_FILEPATH='./config/config.json'
 DEFAULT_CHANNEL_NAME='test'
 
-HASH_MAP_NAME='user-channel'
-LIST_NAME='channel-list'
+CHANNELS_LIST='channels-list'
 
 # Class to communicate to Redis Service
 
 class Redis():
 
-    config = None
-    queue = None
-    channel = None
-    redis_channel_name = None
+    __config = None
+    __queue = None
+    __channel = None
+    __channel_name = None
 
     def __init__(self, config_filepath = None):
 
-        self.config = Config()
+        self.__config = Config()
 
         with open(config_filepath or DEFAULT_CONFIG_FILEPATH, 'r') as handler:
-            self.config.__dict__ = json.load(handler)
-
-        self.redis_channel_name = 'test'
+            self.__config.__dict__ = json.load(handler)
 
         self.__init_queue()
         self.__init_channel()
 
     def __init_queue(self):
 
-        self.queue = redis.StrictRedis(
-            host=self.config.redis_host,
-            port=self.config.redis_port,
-            db=self.config.redis_db,
+        self.__queue = redis.StrictRedis(
+            host=self.__config.redis_host,
+            port=self.__config.redis_port,
+            db=self.__config.redis_db,
             decode_responses=True)
 
     def __init_channel(self):
 
-        self.channel = self.queue.pubsub()
-        self.channel.subscribe(self.redis_channel_name)
+        self.__channel = self.__queue.pubsub()
+        self.__channel.subscribe(DEFAULT_CHANNEL_NAME)
+        self.__channel_name = DEFAULT_CHANNEL_NAME
 
     # Username is only created at the beginning, so join to channel default
-    def set_user(self, string):
 
-        if not self.__check_key_exists(string):
+    def set_channel(self, username, new_channel):
 
-            self.queue.hset(HASH_MAP_NAME, string, DEFAULT_CHANNEL_NAME)
+        print("Unsubscribing from {}".format(self.__channel_name))
+        self.__channel.unsubscribe(self.__channel_name)
 
-            return True
+        self.__queue.lrem(CHANNELS_LIST, 0, new_channel)
+        self.__queue.lpush(CHANNELS_LIST, new_channel)
 
-        return False
+        self.__channel_name = new_channel
 
-    def set_channel(self, username, channel_name):
+        print("Subscribing to {}".format(self.__channel_name))
+        self.__channel.subscribe(self.__channel_name)
 
-        self.queue.hdel(HASH_MAP_NAME, username)
-        self.queue.hset(HASH_MAP_NAME, username, channel_name)
+        self.__queue.sadd(self.__channel_name, username)
 
-        self.queue.lrem(LIST_NAME, 0, channel_name)
+    def __check_all_members(self, string):
 
-        self.queue.lpush(LIST_NAME, channel_name)
+        all_members = self.get_users()
 
-        self.channel.subscribe(channel_name)
+        for value in all_members:
 
-    def __check_key_exists(self, string):
-
-        all_keys = self.queue.hkeys(HASH_MAP_NAME)
-
-        for key in all_keys:
-
-            print("{} {}".format(key, string))
-
-            if key == string:
+            if string == value:
 
                 return True
 
         return False
 
-    def list_users(self):
+    def __get_all_members_from_set(self):
 
-        return self.queue.hkeys(HASH_MAP_NAME)
+        response = {}
+        all_keys = self.__queue.lrange(CHANNELS_LIST, 0, -1)
 
-    def list_channels(self):
+        for key in all_keys:
 
-        return self.queue.lrange(LIST_NAME, 0, -1)
+            response[key] = list(self.__queue.smembers(key))
+
+        return response
+
+    def get_users(self):
+
+        response = []
+
+        members = self.__get_all_members_from_set()
+
+        for key in members:
+
+            response.extend(members[key])
+
+        return response
+
+    def get_channels(self):
+
+        return self.__get_all_members_from_set()
+
+    def get_users_current_channel(self):
+
+        return self.__queue.smembers(self.__channel_name)
 
     def remove_user(self, username):
 
-        self.queue.hdel(HASH_MAP_NAME, username)
+        self.__queue.srem(self.__channel_name, username)
+
+    def check_duplicate(self, string):
+
+        return self.__check_all_members(string)
+
+    def publish(self, message):
+
+        self.__queue.publish(self.__channel_name, message)
+
+    def get_message(self):
+
+        return self.__channel.get_message()
