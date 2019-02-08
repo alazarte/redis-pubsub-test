@@ -7,9 +7,11 @@ import json
 
 from  redis_connection import Redis
 from config import Config
+from commands_handler import CommandsHandler
 
 MIN_CHAR_NAMES=4
 DEFAULT_CONFIG_FILEPATH='./config/config.json'
+NAME_VALIDATE_REGEX='^[a-zA-Z][a-zA-Z0-9]*$'
 
 class Chat():
 
@@ -36,10 +38,11 @@ class Chat():
 
         self.help_message = """
 Available commands
-    listen          Get all messages queued in redis
-    exit            Exit app
-    channel [name]  Change channel to [name]
-    list            List all channels and all users connected
+    /listen          Get all messages queued in redis
+    /exit            Exit app
+    /channel [name]  Change channel to [name]
+    /list            List all channels and all users connected
+    /help            Display this help message
     [string]    Publish string to redis
         """
 
@@ -49,6 +52,13 @@ Available commands
 
         if len(line) < MIN_CHAR_NAMES :
             self.logger.info("Invalid length, shoud be more than {}".format(MIN_CHAR_NAMES))
+            tries += 1
+            line = self.__check_name(prompt, allow_duplicate, tries)
+
+        name_validator = re.compile(NAME_VALIDATE_REGEX)
+
+        if not name_validator.match(line):
+            self.logger.error("Name shoud be in the following format {}".format(NAME_VALIDATE_REGEX))
             tries += 1
             line = self.__check_name(prompt, allow_duplicate, tries)
 
@@ -69,15 +79,14 @@ Available commands
 
     def chat(self):
 
-        message_exit = '^exit$'
-        message_listen = '^listen$'
-        message_channel = '^channel ([a-z]*)'
-        message_list = '^list$'
+        command_handler = CommandsHandler()
 
-        match_exit = re.compile(message_exit)
-        match_listen = re.compile(message_listen)
-        match_channel = re.compile(message_channel)
-        match_list = re.compile(message_list)
+        command_handler.add_command('^/exit$', self.command_exit, 'Exit chat')
+        command_handler.add_command('^/listen$', self.command_listen, 'Get all messages queued in redis')
+        command_handler.add_command('^/channel ([a-z]*)$', self.command_channel, 'Change channel to [name]', True)
+        command_handler.add_command('^/list$', self.command_list, 'List all channel and users connected to them')
+        command_handler.add_command('^/help$', self.command_help, 'Display this help message')
+        command_handler.add_command('^(?!/)(.*)', self.command_send, 'Send message', True)
 
         self.logger.info(self.help_message)
 
@@ -114,41 +123,69 @@ Available commands
             if '' == line:
                 continue
 
-            if match_exit.match(line):
+            try:
+                action, arguments = command_handler.parse_command(line)
+            except TypeError:
+                self.logger.error("Command not found {}".format(line))
+                continue
 
-                self.__quit_chat()
-                break
+            if arguments:
 
-            elif match_listen.match(line):
-                self.logger.info("Hit CTRL+C to stop listening...")
-                try:
-                    while True:
-                        message = self.redis.get_message()
-                        if message:
-                            self.logger.debug("%s" % (message))
-                            if isinstance(message['data'],str) and ':' in message['data']:
-                                user_from = message['data'].split(':')[0]
-                                data = message['data'].split(':')[1:]
-                            else:
-                                user_from = "system"
-                                data = message['data']
-                            self.logger.info("#{}-{}: {}"
-                                .format(message['channel'], user_from, data))
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    self.logger.info("Stop listening")
-
-            elif match_channel.match(line):
-                m = match_channel.match(line)
-                new_channel_name = m.group(1)
-                self.logger.info("Change channel name to {}".format(new_channel_name))
-                self.redis.set_channel(self.username, new_channel_name)
-                # Check if channel exists, if not create a new one
-
-            elif match_list.match(line):
-                all_list = self.redis.get_channels()
-                self.logger.info(all_list)
+                exit = action(arguments)
 
             else:
-                self.logger.debug("Sending...")
-                self.redis.publish("{}:{}".format(self.username, line))
+
+                exit = action()
+
+            if exit:
+
+                break
+
+    def command_channel(self, args):
+
+        new_channel_name = args.group(1)
+        self.logger.info("Change channel name to {}".format(new_channel_name))
+        self.redis.set_channel(self.username, new_channel_name)
+        # Check if channel exists, if not create a new one
+
+    def command_list(self):
+
+        all_list = self.redis.get_channels()
+        self.logger.info(all_list)
+
+    def command_help(self):
+
+        self.logger.info(self.help_message)
+
+    def command_listen(self):
+
+        self.logger.info("Hit CTRL+C to stop listening...")
+        try:
+            while True:
+                message = self.redis.get_message()
+                if message:
+                    self.logger.debug("%s" % (message))
+                    if isinstance(message['data'],str) and ':' in message['data']:
+                        user_from = message['data'].split(':')[0]
+                        data = message['data'].split(':')[1:]
+                    else:
+                        user_from = "system"
+                        data = message['data']
+                    self.logger.info("#{}-{}: {}"
+                        .format(message['channel'], user_from, data))
+                time.sleep(1)
+        except KeyboardInterrupt:
+            self.logger.info("Stop listening")
+
+    def command_exit(self):
+
+        self.__quit_chat()
+        return True
+
+    def command_send(self, args):
+
+        m = args.group(1)
+
+        self.logger.debug("Sending...")
+        self.redis.publish("{}:{}".format(self.username, m))
+
