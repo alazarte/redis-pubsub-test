@@ -8,3 +8,6 @@ redis:
 
 run:
 	docker run --rm -ti --link redis-service chat
+
+sonar:
+	docker run -d --name sonarqube -p 9000:9000 sonarqube
