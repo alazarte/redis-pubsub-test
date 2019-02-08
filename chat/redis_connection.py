@@ -1,9 +1,5 @@
 import redis
-import json
 
-from config import Config
-
-DEFAULT_CONFIG_FILEPATH='./config/config.json'
 DEFAULT_CHANNEL_NAME='test'
 
 CHANNELS_LIST='channels-list'
@@ -17,12 +13,9 @@ class Redis():
     __channel = None
     __channel_name = None
 
-    def __init__(self, config_filepath = None):
+    def __init__(self, config):
 
-        self.__config = Config()
-
-        with open(config_filepath or DEFAULT_CONFIG_FILEPATH, 'r') as handler:
-            self.__config.__dict__ = json.load(handler)
+        self.__config = config
 
         self.__init_queue()
         self.__init_channel()
