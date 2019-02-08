@@ -6,4 +6,4 @@ COPY ./chat /opt/chat
 
 WORKDIR "/opt/chat"
 
-ENTRYPOINT ["python", "chat.py"]
+ENTRYPOINT ["python", "main.py"]

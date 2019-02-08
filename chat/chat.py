@@ -3,27 +3,36 @@ import logging
 import signal
 import re
 import time
+import json
 
 from  redis_connection import Redis
+from config import Config
 
 MIN_CHAR_NAMES=4
+DEFAULT_CONFIG_FILEPATH='./config/config.json'
 
 class Chat():
 
-    config = None
+    __config = None
     logger = None
     message_help = None
     username = None
 
-    def __init__(self):
+    def __init__(self, config_filepath = None):
 
-        self.redis = Redis()
+        self.__config = Config()
+
+        with open(config_filepath or DEFAULT_CONFIG_FILEPATH, 'r') as handler:
+            self.__config.__dict__ = json.load(handler)
+
+        self.redis = Redis(self.__config)
 
         original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGINT, original_sigint_handler)
 
         logging.basicConfig(level=logging.DEBUG, format='%(name)s - %(levelname)s - %(message)s')
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(self.__config.log_level)
 
         self.help_message = """
 Available commands
@@ -143,7 +152,3 @@ Available commands
             else:
                 self.logger.debug("Sending...")
                 self.redis.publish("{}:{}".format(self.username, line))
-
-chat = Chat()
-chat.chat()
-
