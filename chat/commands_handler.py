@@ -10,10 +10,11 @@ class CommandsHandler():
 
         self.__commands = []
 
-    def add_command(self, match_string, method_action, help_message, contains_arguments=False):
+    def add_command(self, command_name, match_string, method_action, help_message, contains_arguments=False):
 
         command = Command()
 
+        command.name = command_name
         command.action = method_action
         command.match = re.compile(match_string)
         command.help = help_message
@@ -32,3 +33,13 @@ class CommandsHandler():
                     return command.action, command.match.match(string)
 
                 return command.action, None
+
+    def get_help_message(self):
+
+        help_message = ""
+
+        for command in self.__commands:
+
+            help_message += "\t{}: {}\n".format(command.name, command.help)
+
+        return help_message

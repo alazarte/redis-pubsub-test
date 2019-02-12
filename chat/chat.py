@@ -15,6 +15,7 @@ NAME_VALIDATE_REGEX = '^[a-zA-Z][a-zA-Z0-9]*$'
 class Chat():
 
     __config = None
+    __command_handler = None
     logger = None
     message_help = None
     username = None
@@ -78,16 +79,16 @@ Available commands
 
     def chat(self):
 
-        command_handler = CommandsHandler()
+        self.__command_handler = CommandsHandler()
 
-        command_handler.add_command('^/exit$', self.command_exit, 'Exit chat')
-        command_handler.add_command('^/listen$', self.command_listen, 'Get all messages queued in redis')
-        command_handler.add_command('^/channel ([a-z]*)$', self.command_channel, 'Change channel to [name]', True)
-        command_handler.add_command('^/list$', self.command_list, 'List all channel and users connected to them')
-        command_handler.add_command('^/help$', self.command_help, 'Display this help message')
-        command_handler.add_command('^(?!/)(.*)', self.command_send, 'Send message', True)
+        self.__command_handler.add_command('/exit','^/exit$', self.command_exit, 'Exit chat')
+        self.__command_handler.add_command('/listen','^/listen$', self.command_listen, 'Get all messages queued in redis')
+        self.__command_handler.add_command('/channel','^/channel ([a-z]*)$', self.command_channel, 'Change channel to [name]', True)
+        self.__command_handler.add_command('/list','^/list$', self.command_list, 'List all channel and users connected to them')
+        self.__command_handler.add_command('/help','^/help$', self.command_help, 'Display this help message')
+        self.__command_handler.add_command('message','^(?!/)(.*)', self.command_send, 'Send message', True)
 
-        self.logger.info(self.help_message)
+        self.logger.info(self.__command_handler.get_help_message())
 
         self.logger.info("Listing all users:")
 
@@ -123,7 +124,7 @@ Available commands
                 continue
 
             try:
-                action, arguments = command_handler.parse_command(line)
+                action, arguments = self.__command_handler.parse_command(line)
             except TypeError:
                 self.logger.error("Command not found {}".format(line))
                 continue
@@ -154,7 +155,7 @@ Available commands
 
     def command_help(self):
 
-        self.logger.info(self.help_message)
+        self.logger.info(self.__command_handler.get_help_message())
 
     def command_listen(self):
 
