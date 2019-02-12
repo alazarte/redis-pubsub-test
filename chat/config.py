@@ -1,3 +1,6 @@
 
 class Config(object):
-    pass
+    redis_host = None
+    redis_port = None
+    redis_db = None
+    log_level = None

@@ -1,4 +1,3 @@
-import fileinput
 import logging
 import signal
 import re
@@ -9,9 +8,9 @@ from  redis_connection import Redis
 from config import Config
 from commands_handler import CommandsHandler
 
-MIN_CHAR_NAMES=4
-DEFAULT_CONFIG_FILEPATH='./config/config.json'
-NAME_VALIDATE_REGEX='^[a-zA-Z][a-zA-Z0-9]*$'
+MIN_CHAR_NAMES = 4
+DEFAULT_CONFIG_FILEPATH = './config/config.json'
+NAME_VALIDATE_REGEX = '^[a-zA-Z][a-zA-Z0-9]*$'
 
 class Chat():
 
@@ -20,7 +19,7 @@ class Chat():
     message_help = None
     username = None
 
-    def __init__(self, config_filepath = None):
+    def __init__(self, config_filepath=None):
 
         self.__config = Config()
 
@@ -50,7 +49,7 @@ Available commands
 
         line = input(prompt).lower()
 
-        if len(line) < MIN_CHAR_NAMES :
+        if len(line) < MIN_CHAR_NAMES:
             self.logger.info("Invalid length, shoud be more than {}".format(MIN_CHAR_NAMES))
             tries += 1
             line = self.__check_name(prompt, allow_duplicate, tries)
@@ -164,15 +163,19 @@ Available commands
             while True:
                 message = self.redis.get_message()
                 if message:
-                    self.logger.debug("%s" % (message))
-                    if isinstance(message['data'],str) and ':' in message['data']:
+                    self.logger.debug("{}".format(message))
+                    if isinstance(message['data'], str) and ':' in message['data']:
                         user_from = message['data'].split(':')[0]
-                        data = message['data'].split(':')[1:]
+                        data = "".join(message['data'].split(':')[1:])
                     else:
                         user_from = "system"
                         data = message['data']
+
+                    self.logger.debug(message['data'])
+
                     self.logger.info("#{}-{}: {}"
                         .format(message['channel'], user_from, data))
+
                 time.sleep(1)
         except KeyboardInterrupt:
             self.logger.info("Stop listening")
