@@ -39,6 +39,7 @@ class Redis():
     def set_channel(self, username, new_channel):
 
         print("Unsubscribing from {}".format(self.__channel_name))
+        self.__queue.srem(self.__channel_name, username)
         self.__channel.unsubscribe(self.__channel_name)
 
         self.__queue.lrem(CHANNELS_LIST, 0, new_channel)
