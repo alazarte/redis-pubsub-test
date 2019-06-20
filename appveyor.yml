@@ -1,3 +1,6 @@
+image: alpine
+
 install:
     - ls -la
+    - apk add make
     - make
