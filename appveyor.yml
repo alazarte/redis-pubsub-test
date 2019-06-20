@@ -1,6 +1,5 @@
-image: alpine
+image: ubuntu
 
 install:
     - ls -la
-    - apk add make
     - make
