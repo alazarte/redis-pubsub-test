@@ -1,13 +1,8 @@
 language: python
 
-env:
-    global:
-        - MIN_CHAR_NAMES=4
-        - CONFIG_FILEPATH=/app/config/config.json
-
 install:
-    - pip install -r requirements.txt
+    - docker build -t chat .
+    - docker-compose up -d
 
 script:
-    - source variables.env
-    - python src/main.py
+    - ./chat
