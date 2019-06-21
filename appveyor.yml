@@ -3,9 +3,7 @@ image: ubuntu
 environment:
     USERNAME: alelazarte
 
-build:
+install:
     - docker build -t ${USERNAME}/chat
 
-push:
-    - docker push ${USERNAME}/chat
 
