@@ -1,4 +1,9 @@
 language: python
 
+env:
+    - MIN_CHAR_NAMES=4
+    - CONFIG_FILEPATH=/app/config/config.json
+
 script:
+    - source variables.env
     - python src/chat.py
