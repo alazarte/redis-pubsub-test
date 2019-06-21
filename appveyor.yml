@@ -1,6 +1,4 @@
 image: ubuntu
 
 install:
-    - ls -la
-    - apt-get install pylint
-    - pylint src/chat.py
+    - scripts/linting
