@@ -1,0 +1,11 @@
+version: '3'
+services:
+    redis-server:
+        image: redis
+        ports:
+        - "6793:6793"
+        networks:
+        - local-chat
+networks:
+    local-chat:
+        driver: bridge
