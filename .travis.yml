@@ -5,6 +5,9 @@ env:
         - MIN_CHAR_NAMES=4
         - CONFIG_FILEPATH=/app/config/config.json
 
+install:
+    - pip install requirements.txt
+
 script:
     - source variables.env
-    - python src/chat.py
+    - python src/main.py
