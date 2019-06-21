@@ -1,4 +1,4 @@
 language: python
 
 script:
-    - src/chat.py
+    - python src/chat.py
