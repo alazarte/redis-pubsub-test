@@ -7,5 +7,6 @@ services:
         networks:
         - local-chat
 networks:
-    local-chat:
-        driver: bridge
+  local-chat:
+    external:
+      name: local-chat
