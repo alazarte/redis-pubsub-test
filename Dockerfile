@@ -2,8 +2,9 @@ FROM python:3
 
 RUN pip install redis
 
-COPY ./chat /opt/chat
+COPY ./src /app
+COPY ./config /app/config
 
-WORKDIR "/opt/chat"
+WORKDIR "/app"
 
 ENTRYPOINT ["python", "main.py"]

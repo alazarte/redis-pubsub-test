@@ -3,14 +3,15 @@ import signal
 import re
 import time
 import json
+import os
 
 from  redis_connection import Redis
 from config import Config
 from commands_handler import CommandsHandler
 
-MIN_CHAR_NAMES = 4
-DEFAULT_CONFIG_FILEPATH = './config/config.json'
-NAME_VALIDATE_REGEX = '^[a-zA-Z][a-zA-Z0-9]*$'
+min_char_names = os.environ['MIN_CHAR_NAMES']
+config_filepath = os.environ['CONFIG_FILEPATH']
+name_validate_regex = '^[a-zA-Z][a-zA-Z0-9]*$'
 
 class Chat():
 
@@ -20,11 +21,11 @@ class Chat():
     message_help = None
     username = None
 
-    def __init__(self, config_filepath=None):
+    def __init__(self):
 
         self.__config = Config()
 
-        with open(config_filepath or DEFAULT_CONFIG_FILEPATH, 'r') as handler:
+        with open(config_filepath, 'r') as handler:
             self.__config.__dict__ = json.load(handler)
 
         self.redis = Redis(self.__config)
@@ -50,15 +51,15 @@ Available commands
 
         line = input(prompt).lower()
 
-        if len(line) < MIN_CHAR_NAMES:
-            self.logger.info("Invalid length, shoud be more than {}".format(MIN_CHAR_NAMES))
+        if len(line) < min_char_names:
+            self.logger.info("Invalid length, shoud be more than {}".format(min_char_names))
             tries += 1
             line = self.__check_name(prompt, allow_duplicate, tries)
 
-        name_validator = re.compile(NAME_VALIDATE_REGEX)
+        name_validator = re.compile(name_validate_regex)
 
         if not name_validator.match(line):
-            self.logger.error("Name shoud be in the following format {}".format(NAME_VALIDATE_REGEX))
+            self.logger.error("Name shoud be in the following format {}".format(name_validate_regex))
             tries += 1
             line = self.__check_name(prompt, allow_duplicate, tries)
 
