@@ -2,5 +2,5 @@ image: alpine
 
 install:
     - ls -la
-    - apk add make
-    - make
+    - apt-get install pylint
+    - pylint src/chat.py
