@@ -1,5 +1,11 @@
 image: ubuntu
 
-install:
-    - ls -la
-    - make
+environment:
+    USERNAME: alelazarte
+
+build:
+    - docker build -t ${USERNAME}/chat
+
+push:
+    - docker push ${USERNAME}/chat
+
