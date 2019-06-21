@@ -1,6 +1,7 @@
 language: python
 
 install:
+    - docker network create local-chat
     - docker build -t chat .
     - docker-compose up -d
 
