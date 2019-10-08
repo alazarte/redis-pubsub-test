@@ -1,4 +1,0 @@
-image: ubuntu
-
-install:
-    - scripts/linting || exit 0
